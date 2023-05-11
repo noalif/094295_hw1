@@ -37,22 +37,27 @@ def optimize_models(train_df, test_df):
 
 
 def main():
-    train_df, test_df = get_original_data(load=True)
+    train_df, test_df = get_original_data(load=False)
 
-    optimize_models(train_df, test_df)
+    # optimize_models(train_df, test_df)
 
-    # create sick & healthy plots after imputations
-    analizing(train_df, 'After')
 
     # ~~~~~~~~~~~~~~~ Get df with predictions ~~~~~~~~~~~~~~~
     predicted_df_gradient_boosting = train_model(train_df, test_df, 'gradient_boosting')
     predicted_df_random_forest = train_model(train_df, test_df, 'random_forest')
     predicted_df_xgb = train_model(train_df, test_df, 'xgb')
-    #
+
+    analizing(train_df, 'After')
+
     # ~~~~~~~~~~~~~~~ Create confusion matrix ~~~~~~~~~~~~~~~
     post_analysis(predicted_df_gradient_boosting)
     post_analysis(predicted_df_random_forest)
     post_analysis(predicted_df_xgb)
+
+    feature_importance(test_df, 'gradient_boosting.pkl')
+    feature_importance(test_df, 'xgb.pkl')
+    feature_importance(test_df, 'random_forest.pkl')
+
 
 
 

@@ -10,81 +10,16 @@ import xgboost as xgb
 import data
 import optuna
 import pickle
-# data_dir = 'train_samples'
-
-# read in the patient data as a pandas dataframe
-# df = data.get_data(data_dir)
-# df = data.combine_patient_data(df)
-# df = data.impute_df_last(df, 'knn', 3)
-# define the features and target variables
-
-def search_GB_hyper_parameters(df, test_df):
-    ###### best parameters for now:
-    # n_estimators = 50, lr = 0.5, max_depth = 1
-    # f1 score is: 0.7307692307692307
-    X_train = df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_train = df['SepsisLabel']
-
-    X_test = test_df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_test = test_df['SepsisLabel']
-
-    # split the data into training and testing sets
-    # X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
-
-    # train a gradient boosting classifier on the training set
-    n_estimators = [50, 100, 150, 200]
-    lr = [0.05, 0.1, 0.5]
-    max_depth = [1,2,3]
-    perm_list = list(itertools.product(n_estimators, lr, max_depth))
-    f1_list = []
-    class_weight = 1 / (y_train.value_counts(normalize=True))
-
-    for i in tqdm(range(len(perm_list))):
-        clf = GradientBoostingClassifier(random_state=42, n_estimators=perm_list[i][0], learning_rate=perm_list[i][1],
-                                         max_depth=perm_list[i][2])
-        clf.fit(X_train, y_train)
-
-        # make predictions on the testing set
-        y_pred = clf.predict(X_test)
-        f1_list.append(f1_score(y_test, y_pred))
-    max_index = f1_list.index(max(f1_list))
-    print(f'n_estimators = {perm_list[max_index][0]}, lr = {perm_list[max_index][1]}, max_depth = {perm_list[max_index][2]}')
-    print(f'f1 score is: {max(f1_list)}')
-    print(f'recall score is: {recall_score(y_test, y_pred)}')
-
-
-def train_gradient_boosting(df, test_df):
-    X_train = df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_train = df['SepsisLabel']
-
-
-    X_test = test_df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_test = test_df['SepsisLabel']
-    clf = GradientBoostingClassifier(random_state=42) #'n_estimators': 426, 'max_depth': 3, 'learning_rate': 0.02181204782105362, 'subsample': 0.8321827059136073
-    clf.fit(X_train, y_train)
-
-    # make predictions on the testing set
-    y_pred = clf.predict(X_test)
-    print(f'f1 score is: {f1_score(y_test, y_pred)}')
-    print(f'recall score is: {recall_score(y_test, y_pred)}')
-
-def train_xgbg(df, test_df):
-    X_train = df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_train = df['SepsisLabel']
-
-
-    X_test = test_df.drop(['pid', 'SepsisLabel'], axis=1)
-    y_test = test_df['SepsisLabel']
-    clf = xgb.XGBClassifier(random_state=42, n_estimators=100, learning_rate=0.5, max_depth=2)
-    clf.fit(X_train, y_train)
-
-    # make predictions on the testing set
-    y_pred = clf.predict(X_test)
-    print(f'f1 score is: {f1_score(y_test, y_pred)}')
-    print(f'recall score is: {recall_score(y_test, y_pred)}')
 
 
 def train_model(train_df, test_df, model=['gradient_boosting', 'xgb', 'random_forest']):
+    """
+    training a model, returning predictions and printing f1 and recall
+    :param train_df:
+    :param test_df:
+    :param model:
+    :return:
+    """
     print(model)
     X_train = train_df.drop(columns=['pid', 'SepsisLabel'])
     y_train = train_df['SepsisLabel']
@@ -93,15 +28,24 @@ def train_model(train_df, test_df, model=['gradient_boosting', 'xgb', 'random_fo
     y_test = test_df['SepsisLabel']
 
     if model == 'gradient_boosting':
-        clf = GradientBoostingClassifier(random_state=42, n_estimators=120, max_depth=9, learning_rate=0.09868131222301617,
-                                         subsample=0.7158681429515562)
+        # Best f1: 0.8078
+        # Best parameters: {'n_estimators': 870, 'max_depth': 5, 'learning_rate': 0.07871498655349331, 'subsample': 0.8380768213263907}
+        clf = GradientBoostingClassifier(random_state=42, n_estimators=870, max_depth=3, learning_rate=0.07871498655349331,
+                                         subsample=0.8380768213263907)
     elif model == 'xgb':
-        clf = xgb.XGBClassifier(random_state=42, n_estimators=916, learning_rate=0.0065049906505311155, max_depth=4,
-                                subsample=0.6, colsample_bytree=0.3, gamma=2.01506026423888, reg_alpha=1.3434769131059672,
-                                reg_lambda=0.04236394239252067, min_child_weight=1)
+        # Best f1 : 0.8087
+        # Best parameters: {'n_estimators': 296, 'max_depth': 7, 'learning_rate': 0.019409095935871035, 'subsample': 0.9,
+        #              'colsample_bytree': 0.4, 'gamma': 0.48090361387529046, 'reg_alpha': 0.38497858145438274,
+        #              'reg_lambda': 0.12743005595006632, 'min_child_weight': 4}
+
+        clf = xgb.XGBClassifier(random_state=42, n_estimators=296, learning_rate=0.019409095935871035, max_depth=7,
+                                subsample=0.9, colsample_bytree=0.4, gamma=0.48090361387529046, reg_alpha=0.38497858145438274,
+                                reg_lambda=0.12743005595006632, min_child_weight=4)
 
     elif model == 'random_forest':
-        clf = RandomForestClassifier(random_state=42, n_estimators=117, max_depth=10)
+        # Best f1: 0.8081
+        # Best parameters: {'n_estimators': 880, 'max_depth': 10, 'learning_rate': 0.04143541748879898}
+        clf = RandomForestClassifier(random_state=42, n_estimators=880, max_depth=10)
 
     clf.fit(X_train, y_train)
 
@@ -118,7 +62,6 @@ def train_model(train_df, test_df, model=['gradient_boosting', 'xgb', 'random_fo
 
 
     res_df = test_df.copy()
-
     res_df['predictedSepsis'] = y_pred
 
     # Save the trained classifier
@@ -129,27 +72,37 @@ def train_model(train_df, test_df, model=['gradient_boosting', 'xgb', 'random_fo
     return res_df
 
 
-def select_features(df):
-    # Split the data into X (features) and y (target)
-    X = df.drop(['pid', 'SepsisLabel'], axis=1)
-    y = df['SepsisLabel']
+def feature_importance(test_df, clf_pickle):
+    """
+    finding the most important features when predicting test_df
+    :param test_df:
+    :param clf_pickle:
+    :return:
+    """
+    print(clf_pickle.split('.')[0])
+    X_test = test_df.drop(['pid', 'SepsisLabel'], axis=1)
+    y_test = test_df['SepsisLabel']
+    with open(clf_pickle, 'rb') as f:
+        clf = pickle.load(f)
 
-    # Create a Random Forest classifier
-    clf = GradientBoostingClassifier(random_state=42, n_estimators=50, learning_rate=0.5, max_depth=1)
+    # Use SelectFromModel to select the most important features
+    sfm = SelectFromModel(clf, threshold='median')
+    sfm.fit(X_test, y_test)
 
-    # Perform feature selection using a Random Forest classifier
-    selector = SelectFromModel(estimator=clf, threshold=0.6)
-    X_selected = selector.fit_transform(X, y)
-    # print(selector.estimator_.coef_)
+    selected_feature_indices = sfm.get_support(indices=True)
+    selected_feature_names = X_test.columns[selected_feature_indices]
 
-    # Get the selected feature names
-    selected_feature_names = X.columns[selector.get_support()]
+    # Print the indices of the selected features
+    print('Selected features:', str(selected_feature_names))
 
-    # Print the selected feature names
-    print("Selected features:", selected_feature_names)
-    print(X_selected)
 
 def optimize_xgb(df, test_df):
+    """
+    finding best hyperparameters for xgb
+    :param df:
+    :param test_df:
+    :return:
+    """
     # Define the objective function for Optuna
     def objective(trial):
         # Define the hyperparameters to optimize
@@ -190,11 +143,17 @@ def optimize_xgb(df, test_df):
     study.optimize(objective, n_trials=100)
 
     # Print the best hyperparameters and accuracy
-    print(f"Best accuracy: {-study.best_value:.4f}")
+    print(f"Best f1: {-study.best_value:.4f}")
     print(f"Best parameters: {study.best_params}")
 
 
 def optimize_gb(df, test_df):
+    """
+    finding best hyperparameters for gb
+    :param df:
+    :param test_df:
+    :return:
+    """
     # Define the objective function for Optuna
     def objective(trial):
         # Define the hyperparameters to optimize
@@ -233,6 +192,12 @@ def optimize_gb(df, test_df):
 
 
 def optimize_rf(df, test_df):
+    """
+    finding best hyperparameters for rf
+    :param df:
+    :param test_df:
+    :return:
+    """
     # Define the objective function for Optuna
     def objective(trial):
         # Define the hyperparameters to optimize
