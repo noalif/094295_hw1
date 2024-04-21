@@ -14,7 +14,7 @@ The patient left intensive care for some reason.
 
 task
 
-Your goal in this exercise is to predict whether a patient in intensive care suffers from sepsis approximately 6 hours before being identified as suffering from sepsis, based on
+Your goal is to predict whether a patient in intensive care suffers from sepsis approximately 6 hours before being identified as suffering from sepsis, based on
 Clinical data about his medical condition over time.
 Each table, representing a patient, contains a column called SepsisLabel. The value in this column is 1 if the row in which the value appears is up to about 6
 hours before the detection of sepsis and 0 otherwise.
